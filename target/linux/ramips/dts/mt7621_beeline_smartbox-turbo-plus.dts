@@ -197,12 +197,7 @@
 };
 
 &state_default {
-	gpio { /* UART2: TXD2 - GPIO#11 - WPS Button
-			* JTAG:  JTDO - GPIO#13 - RGB LED Blue
-			*		 JTDI - GPIO#14 - Reset Button
-			*		 JTMS - GPIO#15 - RGB LED Green
-			*		 TCLK - GPIO#16 - RGB LED Red
-			*/
+	gpio {
 		groups = "jtag", "uart2";
 		function = "gpio";
 	};
