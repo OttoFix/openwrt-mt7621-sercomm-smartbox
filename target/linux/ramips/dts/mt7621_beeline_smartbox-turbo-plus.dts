@@ -157,7 +157,18 @@
 };
 
 &gmac0 {
-	mtd-mac-address = <&factory 0x21000>;
+	nvmem-cells = <&macaddr_factory_21000>;
+	nvmem-cell-names = "mac-address";
+};
+
+&factory {
+	compatible = "nvmem-cells";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	macaddr_factory_21000: macaddr@21000 {
+		reg = <0x21000 0x6>;
+	};
 };
 
 &switch0 {
@@ -166,8 +177,9 @@
 			status = "okay";
 			label = "wan";
 
-			mtd-mac-address = <&factory 0x21000>;
-			mtd-mac-address-increment = <1>;
+			nvmem-cells = <&macaddr_factory_21000>;
+			nvmem-cell-names = "mac-address";
+			mac-address-increment = <1>;
 		};
 
 		port@1 {
