@@ -59,6 +59,30 @@ define Build/iodata-mstc-header
 	)
 endef
 
+define Build/sercomm-tag-factory
+  $(eval magic_const=$(word 1,$(1)))
+  dd if=/dev/zero count=$$((0x200)) bs=1 of=$@.head 2>/dev/null
+  dd if=/dev/zero count=$$((0x70)) bs=1 2>/dev/null | tr '\000' '0' | \
+    dd of=$@.head conv=notrunc 2>/dev/null
+  printf $(SERCOMM_HWVER) | dd of=$@.head bs=1 conv=notrunc 2>/dev/null
+  printf $(SERCOMM_HWID) | dd of=$@.head bs=1 seek=$$((0x8)) conv=notrunc 2>/dev/null
+  printf $(SERCOMM_SWVER) | dd of=$@.head bs=1 seek=$$((0x64)) conv=notrunc \
+    2>/dev/null
+  dd if=$(IMAGE_KERNEL) skip=$$((0x100)) iflag=skip_bytes 2>/dev/null of=$@.clrkrn
+  dd if=$(IMAGE_KERNEL) count=$$((0x100)) iflag=count_bytes 2>/dev/null of=$@.hdrkrn0
+  dd if=/dev/zero count=$$((0x100)) iflag=count_bytes 2>/dev/null of=$@.hdrkrn1
+  wc -c < $@.clrkrn | tr -d '\n' | dd of=$@.head bs=1 seek=$$((0x70)) \
+    conv=notrunc 2>/dev/null
+  stat -c%s $@ | tr -d '\n' | dd of=$@.head bs=1 seek=$$((0x80)) \
+    conv=notrunc 2>/dev/null
+  printf $(magic_const) | dd of=$@.head bs=1 seek=$$((0x90)) conv=notrunc 2>/dev/null
+  cat $@.clrkrn $@ | md5sum | awk '{print $$1;}' | tr -d '\n' | dd of=$@.head bs=1 \
+    seek=$$((0x1e0)) conv=notrunc 2>/dev/null
+  cat $@.head $@.hdrkrn0 $@.hdrkrn1 $@.clrkrn $@ > $@.new
+  mv $@.new $@
+  rm $@.head $@.clrkrn
+endef
+
 define Build/ubnt-erx-factory-image
 	if [ -e $(KDIR)/tmp/$(KERNEL_INITRAMFS_IMAGE) -a "$$(stat -c%s $@)" -lt "$(KERNEL_SIZE)" ]; then \
 		echo '21001:7' > $(1).compat; \
@@ -242,10 +266,14 @@ define Device/beeline_smartbox-turbo-plus
   KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | \
     lzma | uImage lzma
   LOADER_TYPE := bin
-  IMAGES += kernel.bin rootfs.bin
+  IMAGES += kernel.bin rootfs.bin factory.bin
   IMAGE/kernel.bin := append-kernel
   IMAGE/rootfs.bin := append-ubi | check-size
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+  SERCOMM_HWID := 435152
+  SERCOMM_HWVER := 0001
+  SERCOMM_SWVER := 9999
+  IMAGE/factory.bin := append-ubi | sercomm-tag-factory
   DEVICE_VENDOR := Beeline
   DEVICE_MODEL := SmartBox TURBO+
   DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7615-firmware kmod-usb3 \
