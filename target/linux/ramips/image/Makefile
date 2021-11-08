@@ -133,9 +133,15 @@ define Build/sercom-footer
 endef
 
 define Build/sercomm-kernel
-	$(TOPDIR)/scripts/sercomm-kernel.sh $@ \
-		$(SERCOMM_KERNEL_OFFSET) \
-		$(SERCOMM_ROOTFS_OFFSET)
+  $(TOPDIR)/scripts/sercomm.sh \
+    -a \
+    -k $(IMAGE_KERNEL) \
+    -r @ \
+    -l '$(SERCOMM_KERNEL_OFFSET)' \
+    -s '$(SERCOMM_ROOTFS_OFFSET)' \
+    -o $@.hdrkrn
+  cat $@.hdrkrn $(IMAGE_KERNEL) > $@.new
+  mv $@.new $@ ; rm -f $@.hdrkrn
 endef
 
 define Build/sercom-seal
