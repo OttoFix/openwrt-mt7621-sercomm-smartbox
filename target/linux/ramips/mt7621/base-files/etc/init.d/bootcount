@@ -8,6 +8,13 @@ boot() {
 		[ -n "$(fw_printenv bootcount bootchanged 2>/dev/null)" ] &&\
 			echo -e "bootcount\nbootchanged\n" | /usr/sbin/fw_setenv -s -
 		;;
+	beeline,smartbox-turbo-plus)
+		idx="$(find_mtd_index dual-flag)"
+		[ -n "$idx" ] && \
+		[[ $(hexdump -n 1 -e '/1 "%1d"' -s $((0x20001)) /dev/mtd$idx) == \
+			$((0xFF)) ]] || printf '\xFF\xFF' | dd of=/dev/mtdblock$idx \
+			seek=$((0x20001)) count=1 bs=1
+		;;
 	linksys,e5600|\
 	linksys,ea7300-v1|\
 	linksys,ea7300-v2|\

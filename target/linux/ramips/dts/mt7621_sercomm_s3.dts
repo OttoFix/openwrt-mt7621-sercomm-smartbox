@@ -1,0 +1,114 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+#include "mt7621_sercomm_s3.dtsi"
+
+/ {
+	compatible = "sercomm,s3", "mediatek,mt7621-soc";
+	model = "Sercomm S3"; // Etisalat Sercomm S3 AC2100
+
+	aliases {
+		label-mac-device = &gmac0;
+	};
+};
+
+&nand {
+	status = "okay";
+
+	partitions {
+		compatible = "sercomm,sc-partitions", "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		partition@0 {
+			label = "bootloader";
+			reg = <0x0 0x100000>;
+			scpart-id = <0>;
+			read-only;
+		};
+
+		partition@100000 {
+			label = "part_map";
+			reg = <0x100000 0x100000>;
+			scpart-id = <1>;
+			read-only;
+		};
+
+		factory: partition@200000 {
+			label = "factory";
+			reg = <0x200000 0x100000>;
+			scpart-id = <2>;
+			read-only;
+		};
+
+		partition@300000 {
+			label = "dual-flag";
+			reg = <0x300000 0x100000>;
+			scpart-id = <3>;
+		};
+
+		partition@400000 {
+			label = "kernel";
+			reg = <0x400000 0x600000>;
+			scpart-id = <4>;
+		};
+
+		partition@a00000 {
+			label = "uImage2";
+			reg = <0xa00000 0x600000>;
+			scpart-id = <5>;
+			read-only;
+		};
+
+		partition@1000000 {
+			label = "ubi";
+			reg = <0x1000000 0x2000000>;
+			scpart-id = <6>;
+		};
+
+		partition@3000000 {
+			label = "rootfs2";
+			reg = <0x3000000 0x2000000>;
+			scpart-id = <7>;
+			read-only;
+		};
+
+		partition@5000000 {
+			label = "config-log";
+			reg = <0x5000000 0x1400000>;
+			scpart-id = <8>;
+			read-only;
+		};
+
+		partition@6400000 {
+			label = "app-tmp";
+			reg = <0x6400000 0x1b80000>;
+			scpart-id = <9>;
+			read-only;
+		};
+
+		/*
+		 * 512 kB bad block reserved
+		 */
+	};
+};
+
+&factory {
+	compatible = "nvmem-cells";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	macaddr_factory_21000: macaddr@21000 {
+		reg = <0x21000 0x6>;
+	};
+};
+
+&gmac0 {
+	nvmem-cells = <&macaddr_factory_21000>;
+	nvmem-cell-names = "mac-address";
+};
+
+&wan {
+	nvmem-cells = <&macaddr_factory_21000>;
+	nvmem-cell-names = "mac-address";
+	mac-address-increment = <1>;
+};

@@ -77,6 +77,53 @@ define Build/zytrx-header
 	mv $@.new $@
 endef
 
+define Build/sercomm-tag-header-kernel
+  $(eval kernel_offset=$(word 1,$(1)))
+  $(eval rootfs_offset=$(word 2,$(1)))
+  $(TOPDIR)/scripts/sercomm.sh \
+    -a \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -l '$(kernel_offset)' \
+    -s '$(rootfs_offset)' \
+    -o $@.hdrkrn
+  cat $@.hdrkrn $(IMAGE_KERNEL) > $@.new
+  mv $@.new $@ ; rm -f $@.hdrkrn
+endef
+
+define Build/sercomm-tag-factory-img-turbo-plus
+  $(eval kernel1_offset=$(word 1,$(1)))
+  $(eval rootfs1_offset=$(word 2,$(1)))
+  $(eval kernel2_offset=$(word 3,$(1)))
+  $(eval rootfs2_offset=$(word 4,$(1)))
+  $(TOPDIR)/scripts/sercomm.sh \
+    -c \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -g $(SERCOMM_HWVER) \
+    -i $(SERCOMM_HWID) \
+    -j $(SERCOMM_SWVER) \
+    -o $@.hdrfactory ; \
+  $(TOPDIR)/scripts/sercomm.sh \
+    -a \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -l '$(kernel1_offset)' \
+    -s '$(rootfs1_offset)' \
+    -o $@.hdrkrn1 ; \
+  $(TOPDIR)/scripts/sercomm.sh \
+    -a \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -l '$(kernel2_offset)' \
+    -s '$(rootfs2_offset)' \
+    -o $@.hdrkrn2 ; \
+  cp $@.hdrkrn1 /tmp/$@.hdrkrn1 ; \
+  cp $@.hdrkrn2 /tmp/$@.hdrkrn2 ; \
+  cat $@.hdrfactory $@.hdrkrn1 $@.hdrkrn2 $(IMAGE_KERNEL) $@ > $@.new ; \
+  mv $@.new $@ ; rm -f $@.hdrfactory $@.hdrkrn1 $@.hdrkrn2
+endef
+
 define Device/dsa-migration
   DEVICE_COMPAT_VERSION := 1.1
   DEVICE_COMPAT_MESSAGE := Config cannot be migrated from swconfig to DSA
@@ -212,6 +259,100 @@ define Device/asus_rt-n56u-b1
 	kmod-usb-ledtrig-usbport
 endef
 TARGET_DEVICES += asus_rt-n56u-b1
+
+define Device/beeline_smartbox-turbo
+  $(Device/dsa-migration)
+  BLOCKSIZE := 128k
+  PAGESIZE := 2KiB
+  KERNEL_SIZE := 6m
+  IMAGE_SIZE := 32m
+  UBINIZE_OPTS := -E 5
+  KERNEL_LOADADDR := 0x81001000
+  LZMA_TEXT_START := 0x82800000
+  LOADER_TYPE := bin
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  IMAGES += kernel.bin rootfs.bin factory.img
+  IMAGE/kernel.bin := append-ubi | sercomm-tag-header-kernel 0x400100 0x1000000
+  IMAGE/rootfs.bin := append-ubi | check-size
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+  SERCOMM_HWID := DF3
+  SERCOMM_HWVER := 0001
+  SERCOMM_SWVER := 6666
+  DEVICE_VENDOR := Sercomm
+  DEVICE_MODEL := S3
+  DEVICE_VARIANT := DF3
+  DEVICE_ALT0_VENDOR := Beeline
+  DEVICE_ALT0_MODEL := SmartBox TURBO
+  DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7615-firmware kmod-usb3 \
+  uboot-envtools
+endef
+TARGET_DEVICES += beeline_smartbox-turbo
+
+define Device/sercomm_s3
+  $(Device/dsa-migration)
+  BLOCKSIZE := 128k
+  PAGESIZE := 2KiB
+  KERNEL_SIZE := 6m
+  IMAGE_SIZE := 32m
+  UBINIZE_OPTS := -E 5
+  KERNEL_LOADADDR := 0x81001000
+  LZMA_TEXT_START := 0x82800000
+  LOADER_TYPE := bin
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  IMAGES += kernel.bin rootfs.bin
+  IMAGE/kernel.bin := append-ubi | sercomm-tag-header-kernel 0x400100 0x1000000
+  IMAGE/rootfs.bin := append-ubi | check-size
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+  SERCOMM_HWID := DDK
+  SERCOMM_HWVER := 0001
+  SERCOMM_SWVER := 5555
+  DEVICE_VENDOR := Sercomm
+  DEVICE_MODEL := S3
+  DEVICE_VARIANT := DDK
+  DEVICE_ALT0_VENDOR := Etisalat
+  DEVICE_ALT0_MODEL := Sercomm S3 AC2100
+  DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7615-firmware kmod-usb3 \
+  uboot-envtools
+endef
+TARGET_DEVICES += sercomm_s3
+
+define Device/beeline_smartbox-turbo-plus
+  $(Device/dsa-migration)
+  BLOCKSIZE := 128k
+  PAGESIZE := 2KiB
+  KERNEL_SIZE := 6m
+  IMAGE_SIZE := 32m
+  UBINIZE_OPTS := -E 5
+  KERNEL_LOADADDR := 0x81001000
+  LZMA_TEXT_START := 0x82800000
+  LOADER_TYPE := bin
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  IMAGES += kernel.bin rootfs.bin factory.img
+  IMAGE/kernel.bin := append-ubi | sercomm-tag-header-kernel 0x400100 0x1000000
+  IMAGE/rootfs.bin := append-ubi | check-size
+  IMAGE/factory.img := append-ubi | sercomm-tag-factory-img-turbo-plus 0x400100 0x1000000 0xa00100 0x3000000
+  IMAGE/sysupgrade.bin := append-ubi | sercomm-tag-header-kernel 0x400100 0x1000000 | sysupgrade-tar kernel=$$$$@ | append-metadata
+  SERCOMM_HWID := CQR
+  SERCOMM_HWVER := 0001
+  SERCOMM_SWVER := 7777
+  DEVICE_VENDOR := Sercomm
+  DEVICE_MODEL := S3
+  DEVICE_VARIANT := CQR
+  DEVICE_ALT0_VENDOR := Beeline
+  DEVICE_ALT0_MODEL := SmartBox TURBO+
+  DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7615-firmware kmod-usb3 \
+  uboot-envtools
+endef
+TARGET_DEVICES += beeline_smartbox-turbo-plus
 
 define Device/buffalo_wsr-1166dhp
   $(Device/dsa-migration)
