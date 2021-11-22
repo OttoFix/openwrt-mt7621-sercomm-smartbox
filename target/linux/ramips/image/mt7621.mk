@@ -46,6 +46,55 @@ define Build/iodata-mstc-header
 	)
 endef
 
+define Build/sercomm-tag-header-kernel
+  $(eval kernel_offset=$(word 1,$(1)))
+  $(eval rootfs_offset=$(word 2,$(1)))
+  $(TOPDIR)/scripts/sercomm.sh \
+    -a \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -l '$(kernel_offset)' \
+    -s '$(rootfs_offset)' \
+    -o $@.hdrkrn
+  cat $@.hdrkrn $(IMAGE_KERNEL) > $@.new
+  mv $@.new $@ ; rm -f $@.hdrkrn
+endef
+
+define Build/sercomm-tag-factory-img-pro
+  $(eval kernel1_offset=$(word 1,$(1)))
+  $(eval rootfs1_offset=$(word 2,$(1)))
+  $(eval kernel2_offset=$(word 3,$(1)))
+  $(eval rootfs2_offset=$(word 4,$(1)))
+  $(TOPDIR)/scripts/sercomm.sh \
+    -d \
+    -o $@.footer
+  $(TOPDIR)/scripts/sercomm.sh \
+    -c \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -g $(SERCOMM_HWVER) \
+    -i $(SERCOMM_HWID) \
+    -j $(SERCOMM_SWVER) \
+    -p $@.footer \
+    -o $@.hdrfactory
+  $(TOPDIR)/scripts/sercomm.sh \
+    -a \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -l '$(kernel1_offset)' \
+    -s '$(rootfs1_offset)' \
+    -o $@.hdrkrn1
+  $(TOPDIR)/scripts/sercomm.sh \
+    -a \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -l '$(kernel2_offset)' \
+    -s '$(rootfs2_offset)' \
+    -o $@.hdrkrn2
+  cat $@.hdrfactory $@.hdrkrn1 $@.hdrkrn2 $(IMAGE_KERNEL) $@ $@.footer> $@.new
+  mv $@.new $@ ; rm -f $@.hdrfactory $@.hdrkrn1 $@.hdrkrn2 $@.footer
+endef
+
 define Build/ubnt-erx-factory-image
 	if [ -e $(KDIR)/tmp/$(KERNEL_INITRAMFS_IMAGE) -a "$$(stat -c%s $@)" -lt "$(KERNEL_SIZE)" ]; then \
 		echo '21001:7' > $(1).compat; \
@@ -214,6 +263,70 @@ define Device/asus_rt-n56u-b1
 	kmod-usb-ledtrig-usbport
 endef
 TARGET_DEVICES += asus_rt-n56u-b1
+
+define Device/beeline_smartbox-pro
+  $(Device/dsa-migration)
+  BLOCKSIZE := 128k
+  PAGESIZE := 2KiB
+  UBINIZE_OPTS := -E 5
+  KERNEL_SIZE := 4m
+  IMAGE_SIZE := 30m
+  KERNEL_LOADADDR := 0x81001000
+  LZMA_TEXT_START := 0x82800000
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  LOADER_TYPE := bin
+  IMAGES += kernel.bin rootfs.bin factory.img
+  IMAGE/kernel.bin := append-ubi | sercomm-tag-header-kernel 0x1700100 0x1f00000
+  IMAGE/rootfs.bin := append-ubi | check-size
+  IMAGE/factory.img := append-ubi | sercomm-tag-factory-img-pro 0x1700100 0x1f00000 0x1b00100 0x3d00000
+  IMAGE/sysupgrade.bin := append-ubi | sercomm-tag-header-kernel 0x1700100 0x1f00000 | sysupgrade-tar kernel=$$$$@ | append-metadata
+  SERCOMM_HWID := AWI
+  SERCOMM_HWVER := 0001
+  SERCOMM_SWVER := 2020
+  DEVICE_VENDOR := Sercomm
+  DEVICE_MODEL := S1500
+  DEVICE_VARIANT := AWI
+  DEVICE_ALT0_VENDOR := Beeline
+  DEVICE_ALT0_MODEL := SmartBox PRO
+  DEVICE_PACKAGES := kmod-mt76x2 kmod-usb3 uboot-envtools
+endef
+TARGET_DEVICES += beeline_smartbox-pro
+
+define Device/wifire_s1500-nbn
+  $(Device/dsa-migration)
+  BLOCKSIZE := 128k
+  PAGESIZE := 2KiB
+  UBINIZE_OPTS := -E 5
+  KERNEL_SIZE := 4m
+  IMAGE_SIZE := 46m
+  KERNEL_LOADADDR := 0x81001000
+  LZMA_TEXT_START := 0x82800000
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  LOADER_TYPE := bin
+  IMAGES += kernel.bin rootfs.bin factory.img
+  IMAGE/kernel.bin := append-ubi | sercomm-tag-header-kernel 0x1700100 0x1f00000
+  IMAGE/rootfs.bin := append-ubi | check-size
+  IMAGE/factory.img := append-ubi | sercomm-tag-factory-img-pro 0x1700100 0x1f00000 0x1b00100 0x4d00000
+  IMAGE/sysupgrade.bin := append-ubi | sercomm-tag-header-kernel 0x1700100 0x1f00000 | sysupgrade-tar kernel=$$$$@ | append-metadata
+  SERCOMM_HWID := BUC
+  SERCOMM_HWVER := 0001
+  SERCOMM_SWVER := 2015
+  DEVICE_VENDOR := Sercomm
+  DEVICE_MODEL := S1500
+  DEVICE_VARIANT := BUC
+  DEVICE_ALT0_VENDOR := WiFire
+  DEVICE_ALT0_MODEL := Sercomm S1500
+  DEVICE_ALT0_VARIANT := NBN
+  DEVICE_PACKAGES := kmod-mt76x2 kmod-usb3 uboot-envtools
+endef
+TARGET_DEVICES += wifire_s1500-nbn
+
 
 define Device/buffalo_wsr-1166dhp
   $(Device/dsa-migration)

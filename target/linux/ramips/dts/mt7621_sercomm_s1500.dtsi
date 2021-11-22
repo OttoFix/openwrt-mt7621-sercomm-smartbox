@@ -1,0 +1,119 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+#include "mt7621.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ { // SerComm S1500 Clone's
+//	model = "Beeline SmartBox PRO";
+//	model = "WiFire S1500.NBN";
+
+	aliases {
+		led-boot = &led_status_white;
+		led-failsafe = &led_status_white;
+		led-running = &led_status_blue;
+		led-upgrade = &led_status_white;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led_status_blue: status_blue { // LED WPS?
+			label = "blue:status";
+			gpios = <&gpio 29 GPIO_ACTIVE_LOW>;
+		};
+
+		led_status_white: status_white { // LED STATUS?
+			label = "white:status";
+			gpios = <&gpio 30 GPIO_ACTIVE_LOW>;
+		};
+
+		wlan2g {
+			label = "white:wlan2g";
+			gpios = <&gpio 28 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "phy1tpt";
+		};
+
+		wlan5g {
+			label = "white:wlan5g";
+			gpios = <&gpio 32 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "phy0tpt";
+		};
+	};
+
+	keys {
+		compatible = "gpio-keys";
+
+		reset {
+			label = "Reset Button";
+			gpios = <&gpio 7 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+
+		wps {
+			label = "WPS Button";
+			gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+	};
+};
+
+&pcie {
+	status = "okay";
+};
+
+&pcie0 { // mt7612en
+	wlan_5g: wifi@0,0 {
+		compatible = "mediatek,mt76";
+		reg = <0x0000 0 0 0 0>;
+		ieee80211-freq-limit = <5000000 6000000>;
+		mediatek,mtd-eeprom = <&factory 0x8000>;
+	};
+};
+
+&pcie1 { // mt7602en
+	wlan_2g: wifi@0,0 {
+		compatible = "mediatek,mt76";
+		reg = <0x0000 0 0 0 0>;
+		ieee80211-freq-limit = <2400000 2500000>;
+		mediatek,mtd-eeprom = <&factory 0x0>;
+	};
+};
+
+&state_default {
+	gpio {
+		groups = "wdt", "uart3", "rgmii2", "jtag", "uart2", "i2c";
+		function = "gpio";
+	};
+};
+
+&switch0 {
+	ports {
+		port@0 {
+			status = "okay";
+			label = "lan4";
+		};
+
+		port@1 {
+			status = "okay";
+			label = "lan3";
+		};
+
+		port@2 {
+			status = "okay";
+			label = "lan2";
+		};
+
+		port@3 {
+			status = "okay";
+			label = "lan1";
+		};
+
+		wan: port@4 {
+			status = "okay";
+			label = "wan";
+		};
+	};
+};
+

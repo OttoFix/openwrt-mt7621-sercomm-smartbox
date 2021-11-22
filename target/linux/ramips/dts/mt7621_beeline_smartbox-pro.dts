@@ -1,0 +1,234 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+#include "mt7621_sercomm_s1500.dtsi"
+
+/ {
+	compatible = "beeline,smartbox-pro", "mediatek,mt7621-soc";
+	model = "Beeline SmartBox PRO";
+
+	aliases {
+		label-mac-device = &gmac0;
+	};
+
+	leds {
+		lan1_amber {
+			label = "amber:lan1";
+			gpios = <&gpio 22 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "dsa-0.0:03:link";
+		};
+
+		lan1_green {
+			label = "green:lan1";
+			gpios = <&gpio 23 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "dsa-0.0:03:1Gbps";
+		};
+
+		lan2_amber {
+			label = "amber:lan2";
+			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "dsa-0.0:02:link";
+		};
+
+		lan2_green {
+			label = "green:lan2";
+			gpios = <&gpio 26 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "dsa-0.0:02:1Gbps";
+		};
+
+		lan3_amber {
+			label = "amber:lan3";
+			gpios = <&gpio 10 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "dsa-0.0:01:link";
+		};
+
+		lan3_green {
+			label = "green:lan3";
+			gpios = <&gpio 12 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "dsa-0.0:01:1Gbps";
+		};
+
+		lan4_amber {
+			label = "amber:lan4";
+			gpios = <&gpio 3 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "dsa-0.0:00:link";
+		};
+
+		lan4_green {
+			label = "green:lan4";
+			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "dsa-0.0:00:1Gbps";
+		};
+
+		wan_amber {
+			label = "amber:wan";
+			gpios = <&gpio 24 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "dsa-0.0:04:link";
+		};
+
+		wan_green {
+			label = "green:wan";
+			gpios = <&gpio 25 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "dsa-0.0:04:1Gbps";
+		};
+	};
+
+	keys {
+		switch_bt { // "LOW<->HIGH" Switch Button
+			label = "ROUT<->REP Switch_bt";
+			gpios = <&gpio 6 GPIO_ACTIVE_HIGH>;
+			linux,input-type = <EV_SW>;
+			linux,code = <KEY_RFKILL>;
+			debounce-interval = <60>;
+		};
+	};
+
+	ubi-concat {
+		compatible = "mtd-concat";
+		devices = <&ubiconcat0 &ubiconcat1 &ubiconcat2 &ubiconcat3 \
+			&ubiconcat4 &ubiconcat5 &ubiconcat6>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "ubi";
+				reg = <0x0 0xd2e0000>;
+			};
+		};
+	};
+};
+
+&nand {
+	status = "okay";
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		partition@0_all {
+			label = "ALL";
+			reg = <0x0 0xff80000>;
+			read-only;
+		};
+
+		partition@0 {
+			label = "BootLoader";
+			reg = <0x0 0x100000>;
+			read-only;
+		};
+
+		factory: partition@100000 {
+			label = "Factory";
+			reg = <0x100000 0x100000>;
+			read-only;
+		};
+
+		partition@200001 {
+			label = "sys_data";
+			reg = <0x200000 0x1400000>;
+			read-only;
+		}; // Uboot saveenv 0x600000 0x20000
+
+		partition@1600000 {
+			label = "boot_flag";
+			reg = <0x1600000 0x100000>;
+		};
+
+		partition@1700000 {
+			label = "kernel"; // Kernel_1
+			reg = <0x1700000 0x400000>;
+		};
+
+		partition@1b00000 {
+			label = "Kernel_2";
+			reg = <0x1b00000 0x400000>;
+			read-only;
+		};
+
+		ubiconcat0: partition@1f00000 {
+			label = "RootFS_1";
+			reg = <0x1f00000 0x1e00000>;
+		};
+
+		partition@3d00000 {
+			label = "RootFS_2";
+			reg = <0x3d00000 0x1e00000>;
+			read-only;
+		};
+
+		ubiconcat1: partition@5b00000 {
+			label = "JVM/OSGI1";
+			reg = <0x5b00000 0x3200000>;
+		};
+
+		ubiconcat2: partition@8d00000 {
+			label = "JVM/OSGI2";
+			reg = <0x8d00000 0x3200000>;
+		};
+
+		ubiconcat3: partition@bf00000 {
+			label = "OSGI data";
+			reg = <0xbf00000 0x3c00000>;
+		};
+
+		ubiconcat4: partition@fb00000 {
+			label = "Ftool";
+			reg = <0xfb00000 0x100000>;
+		};
+
+		/*
+		 * 4 MiB for Bad Block Table?
+		 * 0x10000000-0xfc00000=0x400000
+		 */
+
+		partition@800000 {
+			label = "BootLoad-Env";
+			reg = <0x800000 0x20000>;
+		};
+
+		ubiconcat5: partition@200000 {
+			label = "sysdata01";
+			reg = <0x200000 0x600000>;
+		};
+
+		ubiconcat6: partition@820000 {
+			label = "sysdata02";
+			reg = <0x820000 0xde0000>;
+		};
+	};
+};
+
+&wlan_2g {
+	nvmem-cells = <&macaddr_factory_21000>;
+	nvmem-cell-names = "mac-address";
+};
+
+&wlan_5g {
+	nvmem-cells = <&macaddr_factory_21000>;
+	nvmem-cell-names = "mac-address";
+	mac-address-increment = <2>;
+};
+
+&wan {
+	nvmem-cells = <&macaddr_factory_21000>;
+	nvmem-cell-names = "mac-address";
+	mac-address-increment = <1>;
+};
+
+&gmac0 {
+	nvmem-cells = <&macaddr_factory_21000>;
+	nvmem-cell-names = "mac-address";
+};
+
+&factory {
+	compatible = "nvmem-cells";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	macaddr_factory_21000: macaddr@21000 {
+		reg = <0x21000 0x6>;
+	};
+};
