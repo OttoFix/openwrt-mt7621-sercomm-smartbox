@@ -79,34 +79,20 @@
 };
 
 &wlan_2g {
-	nvmem-cells = <&macaddr_factory_1000>;
-	nvmem-cell-names = "mac-address";
+	mtd-mac-address = <&factory 0x1000>;
 	mac-address-increment = <1>;
 };
 
 &wlan_5g {
-	nvmem-cells = <&macaddr_factory_1000>;
-	nvmem-cell-names = "mac-address";
+	mtd-mac-address = <&factory 0x1000>;
 	mac-address-increment = <2>;
 };
 
 &wan {
-	nvmem-cells = <&macaddr_factory_1000>;
-	nvmem-cell-names = "mac-address";
+	mtd-mac-address = <&factory 0x1000>;
 	mac-address-increment = <1>;
 };
 
 &gmac0 {
-	nvmem-cells = <&macaddr_factory_1000>;
-	nvmem-cell-names = "mac-address";
-};
-
-&factory {
-	compatible = "nvmem-cells";
-	#address-cells = <1>;
-	#size-cells = <1>;
-
-	macaddr_factory_1000: macaddr@1000 {
-		reg = <0x1000 0x6>;
-	};
+	mtd-mac-address = <&factory 0x1000>;
 };
